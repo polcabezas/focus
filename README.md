@@ -44,12 +44,24 @@ Browser blocking works through a small Manifest V3 extension that talks to the a
 
 ## Install
 
+### Download
+
+Download `Focus-0.5.0-macOS.zip` from [Releases](https://github.com/polcabezas/focus/releases/latest), unzip it, and run:
+
 ```sh
 ./scripts/install.sh
 ```
 
-The script builds `build/Focus.app`, copies it to `~/Applications/Focus.app`, and starts it as a LaunchAgent so it runs at login.
-If the build fails, nothing is changed.
+Focus is ad-hoc signed and not notarized. The script clears the quarantine flag on the app it installs. If you open `Focus.app` yourself and macOS blocks it, use System Settings → Privacy & Security → **Open Anyway**.
+
+### From source
+
+```sh
+./scripts/install.sh
+```
+
+The script builds `build/Focus.app` (universal, arm64 and x86_64), copies it to `~/Applications/Focus.app`, and starts it as a LaunchAgent so it runs at login.
+If the build fails, nothing is changed. Run `./scripts/install.sh --dry-run` to print the plan without changing anything.
 
 Re-running the script is safe. It stops any running Focus, removes traces of the previous install
 (old app, LaunchAgent, preferences, caches, and obsolete API key files from earlier versions) and reinstalls.
@@ -144,7 +156,7 @@ Sources/Focus/System/            AppController, AppBlocker, BridgeServer, Overla
 Sources/Focus/UI/                SwiftUI views: menu, settings, block/emergency/warning overlays, theme
 Tests/FocusCoreTests/            unit tests for the core logic
 extension/                       MV3 browser extension (manifest, background, content script, block page)
-scripts/                         build.sh, install.sh, uninstall.sh, lib.sh
+scripts/                         build.sh, install.sh, uninstall.sh, lib.sh, package-release.sh
 assets/                          app icon source, extension icon sources, logo and screenshot
 SPEC.md, DESIGN.md               internal specification and design notes
 ```
@@ -154,7 +166,8 @@ SPEC.md, DESIGN.md               internal specification and design notes
 ```sh
 swift build           # debug build
 swift test            # unit tests for FocusCore
-scripts/build.sh      # release build into build/Focus.app (signed ad hoc)
+scripts/build.sh      # universal release build (arm64 + x86_64) into build/Focus.app (signed ad hoc)
+scripts/package-release.sh  # build, then dist/Focus-<version>-macOS.zip for GitHub Releases (prints SHA-256)
 ```
 
 - **App icon:** edit `assets/AppIcon.icon` in Icon Composer (Xcode > Open Developer Tool > Icon Composer).

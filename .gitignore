@@ -28,3 +28,6 @@ coverage/
 # secure-new-repo skill artifacts
 .security-bootstrap-state.json
 .security-bootstrap-log.md
+
+# Release packaging output
+dist/

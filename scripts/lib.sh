@@ -8,7 +8,15 @@ REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
 LABEL="com.pol.focus"
 BRIDGE_PORT=47823
 APP_DEST="$HOME/Applications/Focus.app"
-BUILD_APP="$REPO_ROOT/build/Focus.app"
+# Two layouts. From source (Package.swift present): build.sh produces build/Focus.app.
+# From a release folder: a prebuilt Focus.app sits next to scripts/ and nothing is built.
+if [[ -f "$REPO_ROOT/Package.swift" ]]; then
+  INSTALL_MODE="source"
+  BUILD_APP="$REPO_ROOT/build/Focus.app"
+else
+  INSTALL_MODE="prebuilt"
+  BUILD_APP="$REPO_ROOT/Focus.app"
+fi
 APP_EXEC="$APP_DEST/Contents/MacOS/Focus"
 BUILD_EXEC="$BUILD_APP/Contents/MacOS/Focus"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"

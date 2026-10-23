@@ -3,17 +3,36 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="$ROOT/build/Focus.app"
+VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT/extension/manifest.json" | head -n 1)"
+if [[ -z "$VERSION" ]]; then
+  echo "Cannot read the version from extension/manifest.json" >&2
+  exit 1
+fi
 
 cd "$ROOT"
-echo "==> Building Focus (release)"
-swift build -c release --product Focus
+# Universal binary (arm64 + x86_64).
+ARCH_FLAGS=(--arch arm64 --arch x86_64)
+echo "==> Building Focus $VERSION (release, arm64 + x86_64)"
+swift build -c release --product Focus "${ARCH_FLAGS[@]}"
 
-BIN_DIR="$(swift build -c release --show-bin-path)"
+BIN_DIR="$(swift build -c release "${ARCH_FLAGS[@]}" --show-bin-path)"
 
 echo "==> Assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN_DIR/Focus" "$APP/Contents/MacOS/Focus"
+# Drop debug stabs, which otherwise carry the absolute source path (/Users/...). Global symbols stay for crash logs.
+strip -S "$APP/Contents/MacOS/Focus"
+if grep -a -q -F "$ROOT" "$APP/Contents/MacOS/Focus"; then
+  echo "Focus binary still embeds the build path $ROOT" >&2
+  exit 1
+fi
+for arch in arm64 x86_64; do
+  lipo "$APP/Contents/MacOS/Focus" -verify_arch "$arch" || {
+    echo "Focus binary is missing the $arch slice" >&2
+    exit 1
+  }
+done
 
 # App icon: compile the committed Icon Composer source (assets/AppIcon.icon) into
 # Assets.car (light, dark and tinted appearances) plus an AppIcon.icns fallback.
@@ -56,6 +75,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
+# Keep the app version in lockstep with the extension version.
+plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 codesign --force --sign - "$APP"
 
