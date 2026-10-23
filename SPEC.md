@@ -202,7 +202,7 @@ All views use `@EnvironmentObject var app: AppController`.
 - Aesthetic: system materials and text styles, system colours, one accent, SF Symbols, subtle animations. No custom palette.
 
 ## Extension — `extension/`
-Files: `manifest.json` (version `0.4.0`), `background.js`, `keepalive.js`, `blocked.html`, `blocked.css`, `blocked.js`.
+Files: `manifest.json` (version `0.5.0`), `background.js`, `keepalive.js`, `blocked.html`, `blocked.css`, `blocked.js`.
 - MV3. `"background": {"service_worker": "background.js", "scripts": ["background.js"]}` (scripts key = WebKit fallback).
   permissions `tabs`, `webNavigation`, `storage`; host_permissions `<all_urls>`; `web_accessible_resources` for blocked.html.
   `content_scripts`: `keepalive.js` on `<all_urls>`, `run_at` document_start, `all_frames` false.

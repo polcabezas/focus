@@ -33,8 +33,8 @@ final class StoreTests: XCTestCase {
                       "visitedURLs": []}],
           "purposefulLockedUntil": 100,
           "settings": {
-            "gatekeeper": {"baseURL": "https://openrouter.ai/api/v1", "model": "typesafe/jev-1.14", "jsonMode": false},
-            "verifier": {"baseURL": "https://opencode.ai/inference/go/openai/v1", "model": "deepseek-v4.1-flash",
+            "gatekeeper": {"baseURL": "https://example.invalid/v1", "model": "legacy-model", "jsonMode": false},
+            "verifier": {"baseURL": "https://example.invalid/v1", "model": "legacy-model-2",
                          "reasoningEffort": "low", "jsonMode": true},
             "accent": "hot pink",
             "dayBoundaryHour": 7,
