@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <img src="https://img.shields.io/badge/SwiftPM-only-blue" alt="SwiftPM">
   <img src="https://img.shields.io/badge/browser%20extension-MV3-green" alt="MV3 extension">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT license"></a>
 </p>
 
 ## What it is
@@ -192,3 +193,7 @@ For internal conventions, see [SPEC.md](SPEC.md) (behavior and build contract) a
 
 - [SPEC.md](SPEC.md): behavior, data model and build contract
 - [DESIGN.md](DESIGN.md): visual design rules for the app and the block page
+
+## License
+
+[MIT](LICENSE) © 2026 Pol Cabezas Agustí
