@@ -270,6 +270,7 @@ private struct GeneralTab: View {
     @EnvironmentObject var app: AppController
     @Binding var rejected: Bool
     @State private var draft = FocusCore.Settings()
+    @State private var confirmUninstall = false
 
     var body: some View {
         Form {
@@ -279,6 +280,13 @@ private struct GeneralTab: View {
                 Stepper("Phrase length: \(draft.emergencyPhraseLength)", value: $draft.emergencyPhraseLength, in: 20...400, step: 20)
             }
             Section {
+                Button("Show Browser Extension…", action: showExtension)
+            } header: {
+                Text("Browser extension")
+            } footer: {
+                Text("Load this folder in Arc (arc://extensions → Developer mode → Load unpacked) or in Search's extension settings.")
+            }
+            Section {
                 HStack {
                     Spacer()
                     Button("Save", action: save)
@@ -286,9 +294,31 @@ private struct GeneralTab: View {
                         .keyboardShortcut(.defaultAction)
                 }
             }
+            Section {
+                Button("Uninstall Focus…", role: .destructive) { confirmUninstall = true }
+                    .disabled(app.isBlockActive)
+            } footer: {
+                if app.isBlockActive {
+                    Text("Available when no block is active.")
+                }
+            }
         }
         .formStyle(.grouped)
         .onAppear { draft = app.state.settings }
+        .alert("Uninstall Focus?", isPresented: $confirmUninstall) {
+            Button("Uninstall", role: .destructive, action: Uninstaller.uninstall)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes Focus, its settings, history and background item. Your browser extension must be removed in the browser.")
+        }
+    }
+
+    private func showExtension() {
+        do {
+            try BundledExtension.reveal()
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     private func save() {

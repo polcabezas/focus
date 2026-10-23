@@ -22,11 +22,13 @@ Sources/FocusCore/                    pure logic, no AppKit/SwiftUI imports
   Models.swift  Store.swift  Engine.swift  TrustedClock.swift
 Tests/FocusCoreTests/                 EngineTests.swift, StoreTests.swift
 Sources/Focus/App/FocusApp.swift      @main
-Sources/Focus/System/                 AppController, AppBlocker, BridgeServer, OverlayController
+Sources/Focus/System/                 AppController, AppBlocker, BridgeServer, OverlayController, LaunchAgent,
+                                      Uninstaller, BundledExtension
 Sources/Focus/UI/                     SwiftUI views: Theme, OverlayChrome, MenuContentView, SettingsView,
                                       BlockedView, BrowserWarningView, EmergencyView
 extension/                            manifest.json, background.js, keepalive.js, blocked.html/.css/.js
-scripts/                              build.sh, install.sh, uninstall.sh, lib.sh
+                                      (copied into Focus.app/Contents/Resources/extension by build.sh)
+scripts/                              build.sh, build-dmg.sh, install.sh, uninstall.sh, lib.sh, package-release.sh
 ```
 
 ## FocusCore — all `public`, structs `Codable, Equatable`
@@ -176,7 +178,7 @@ interface). `isListening` is true on `.ready`; on failure it retries every 5s an
 Each kind has at most one window. Inject `.environmentObject(app)`.
 
 **FocusApp** — `@main struct FocusApp: App`: `MenuBarExtra { MenuContentView() } label: { lock icon }.menuBarExtraStyle(.window)`,
-no Window scene: settings is an NSWindow managed by OverlayController. `NSApp.setActivationPolicy(.accessory)`; while Settings is open it is `.regular` (Dock icon, ⌘-Tab, main menu with "Settings…" ⌘, and Quit; Dock click reopens Settings), back to `.accessory` when it closes. Quit is
+no Window scene: settings is an NSWindow managed by OverlayController. `applicationDidFinishLaunching` calls `LaunchAgent.start()`. `NSApp.setActivationPolicy(.accessory)`; while Settings is open it is `.regular` (Dock icon, ⌘-Tab, main menu with "Settings…" ⌘, and Quit; Dock click reopens Settings), back to `.accessory` when it closes. Quit is
 blocked during an active block via `applicationShouldTerminate` returning `.terminateCancel`.
 
 ## UI — `Sources/Focus/UI`, SwiftUI, macOS 26 (Liquid Glass `.glassEffect()`)
@@ -190,8 +192,21 @@ All views use `@EnvironmentObject var app: AppController`.
   allowed); "Emergency Exit…" if `app.canEmergencyExit`; "Settings…" (⌘,); "Quit Focus" (⌘Q, disabled during a block).
 - **SettingsView**: tabs Modes (list; edit name, symbol, domains one-per-line, apps added via `NSOpenPanel` on /Applications
   reading `Bundle(url:)?.bundleIdentifier`), Schedules (mode, enabled, weekday toggles, start/end time), General (emergency exit:
-  enabled, wait minutes, phrase length).
+  enabled, wait minutes, phrase length; "Browser extension" → "Show Browser Extension…"; "Uninstall Focus…" destructive, disabled
+  during a block with the caption "Available when no block is active.", confirmed by the alert "Uninstall Focus?").
   All writes via `app.update { }`; if it returns false an alert shows `app.lastError`.
+- **LaunchAgent** (`enum`, MainActor, `System/LaunchAgent.swift`): `start()` runs at launch. Only for a bundle with id
+  com.pol.focus (a `swift run` binary never registers). If the executable is on `/Volumes/` or under `/AppTranslocation/`, an alert
+  "Move Focus to Applications" offers to copy the bundle to `/Applications` (or `~/Applications` when not writable), remove
+  quarantine (`xattr -dr`) and launch the copy; otherwise it ensures `~/Library/LaunchAgents/com.pol.focus.plist` points at this
+  executable (Label, ProgramArguments, RunAtLoad, KeepAlive SuccessfulExit false, ProcessType Interactive; same keys as install.sh).
+  When it writes the file or another Focus instance is running, it runs `launchctl bootout` and `bootstrap` and exits 0, so only
+  launchd's copy keeps running. Launched by launchd (`XPC_SERVICE_NAME` = label) it never bootstraps itself.
+- **Uninstaller** (`enum`, `System/Uninstaller.swift`): trashes the app bundle first (on failure nothing else is touched), then removes
+  the LaunchAgent plist, `Store.directory`, and the defensive paths of lib.sh's `remove_app_traces`. It then starts a detached
+  `/bin/sh -c 'sleep 1; launchctl bootout …; tccutil reset All com.pol.focus'` and calls `exit(0)`, so KeepAlive does not restart it.
+- **BundledExtension** (`enum`, `System/BundledExtension.swift`): copies `Focus.app/Contents/Resources/extension` to
+  `~/Library/Application Support/Focus/Extension` when that copy is missing or has another manifest version, then reveals it in Finder.
 - **BlockedView**: "<target> is blocked" (app name for app targets), "Blocked by <Mode> until HH:mm.", countdown to the
   block end, "Back to Work" (closes the panel). No other action.
 - **BrowserWarningView**: symbol + title + reason; countdown when a deadline is given; "OK" closes it.
@@ -202,7 +217,8 @@ All views use `@EnvironmentObject var app: AppController`.
 - Aesthetic: system materials and text styles, system colours, one accent, SF Symbols, subtle animations. No custom palette.
 
 ## Extension — `extension/`
-Files: `manifest.json` (version `0.5.0`), `background.js`, `keepalive.js`, `blocked.html`, `blocked.css`, `blocked.js`.
+Files: `manifest.json` (version `0.6.0`), `background.js`, `keepalive.js`, `blocked.html`, `blocked.css`, `blocked.js`.
+The same folder ships inside the app (see BundledExtension). The version in `manifest.json` also sets the app version (build.sh).
 - MV3. `"background": {"service_worker": "background.js", "scripts": ["background.js"]}` (scripts key = WebKit fallback).
   permissions `tabs`, `webNavigation`, `storage`; host_permissions `<all_urls>`; `web_accessible_resources` for blocked.html.
   `content_scripts`: `keepalive.js` on `<all_urls>`, `run_at` document_start, `all_frames` false.
@@ -221,14 +237,23 @@ Files: `manifest.json` (version `0.5.0`), `background.js`, `keepalive.js`, `bloc
   background `{type:"backToWork"}`; the background removes the sender tab (blocked.js falls back to `window.close()`
   when there is no tab). The app is not messaged. Poll/listen for rule changes; once host no longer blocked → `location.replace(original)`.
 
-## Scripts
-- `scripts/build.sh`: `swift build -c release --product Focus`; assemble `build/Focus.app/Contents/{MacOS/Focus,Info.plist}`
-  (CFBundleIdentifier com.pol.focus, LSUIElement true, LSMinimumSystemVersion 26.0); `codesign --force --sign - build/Focus.app`.
-- `scripts/install.sh`: run build; `remove_app_traces` (keeps state and history; removes the old app, LaunchAgent, preferences,
-  caches, and the obsolete key files `apikey`, `apikey-gatekeeper`, `apikey-verifier`); copy to `~/Applications/Focus.app`; write
-  `~/Library/LaunchAgents/com.pol.focus.plist` (RunAtLoad, KeepAlive on failure, ProcessType Interactive); bootstrap it;
-  wait up to 10 s for the bridge to listen; print next steps (load the extension).
+## Build, install and release
+- `scripts/build.sh`: version read from `extension/manifest.json`; `swift build -c release --product Focus --arch arm64 --arch x86_64`;
+  assemble `build/Focus.app/Contents/{MacOS/Focus,Info.plist,Resources}` (Info.plist: CFBundleIdentifier com.pol.focus, LSUIElement
+  true, LSMinimumSystemVersion 26.0, version = manifest version); `strip -S`; fail if the binary embeds the repo path or lacks a slice;
+  compile `assets/AppIcon.icon` with `xcrun actool` into `Assets.car` and `AppIcon.icns`; copy `extension/` to
+  `Contents/Resources/extension`; `codesign --force --sign - build/Focus.app`.
+- `scripts/install.sh` (from source, or from a prebuilt release folder with `Focus.app` next to `scripts/`): `--dry-run` prints the plan
+  and changes nothing. Otherwise: build (or verify the prebuilt signature and clear quarantine); `stop_focus` (bootout, stop processes
+  from `~/Applications`, `/Applications` (Focus bundles only) and the build); `remove_app_traces` (keeps state and history; removes
+  the old app, LaunchAgent, preferences, caches and the obsolete key files `apikey`, `apikey-gatekeeper`, `apikey-verifier`);
+  copy to `~/Applications/Focus.app`; write `~/Library/LaunchAgents/com.pol.focus.plist` (same keys as LaunchAgent.swift);
+  bootstrap it; wait up to 10 s for the bridge to listen; print next steps (load the extension).
 - `scripts/uninstall.sh`: refuse while `active-block-until` holds a future date unless `--force`. Otherwise: bootout agent; remove
-  plist, `~/Applications/Focus.app`, the obsolete key files and the data dir; defensively remove preferences, caches, HTTPStorages,
-  Saved Application State, WebKit, Application Scripts and Containers entries; `tccutil reset All com.pol.focus`. Ends with a
-  leftover scan (`scan_traces`), non-zero exit if anything remains. Idempotent.
+  the plist, the app in `/Applications` or `~/Applications` (Focus bundles only), the obsolete key files and the data dir; defensively
+  remove preferences, caches, HTTPStorages, Saved Application State, WebKit, Application Scripts and Containers entries;
+  `tccutil reset All com.pol.focus`. Ends with a leftover scan (`scan_traces`), non-zero exit if anything remains. Idempotent.
+- `scripts/build-dmg.sh` (release): builds `build/Focus.app` and packages `dist/Focus-<version>.dmg` with `Focus.app` and an
+  Applications link for drag-to-Applications install. `scripts/package-release.sh` makes the zip and folder variant.
+- Install paths for users: DMG → drag to Applications → the app registers its own LaunchAgent (LaunchAgent.swift) and shows
+  "Show Browser Extension…"; uninstall from Settings → General → "Uninstall Focus…" (Uninstaller.swift) or `scripts/uninstall.sh`.

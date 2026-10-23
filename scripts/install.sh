@@ -33,8 +33,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     fi
     echo "  quarantine: would remove com.apple.quarantine from $BUILD_APP"
   fi
-  echo "  stop:       bootout gui/$UID/$LABEL and stop Focus processes from $APP_DEST and $BUILD_EXEC"
-  echo "  remove:     old LaunchAgent, $APP_DEST, old preferences and caches (state and history are kept)"
+  echo "  stop:       bootout gui/$UID/$LABEL and stop Focus processes from $APP_DEST, $SYS_APP_DEST and $BUILD_EXEC"
+  echo "  remove:     old LaunchAgent, $APP_DEST, $SYS_APP_DEST (if it is Focus), old preferences and caches (state and history are kept)"
   echo "  install:    $BUILD_APP -> $APP_DEST"
   echo "  launch:     $PLIST (RunAtLoad), launchctl bootstrap gui/$UID"
   echo "  verify:     bridge listening on 127.0.0.1:$BRIDGE_PORT within 10s"

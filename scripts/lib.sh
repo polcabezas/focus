@@ -8,6 +8,9 @@ REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
 LABEL="com.pol.focus"
 BRIDGE_PORT=47823
 APP_DEST="$HOME/Applications/Focus.app"
+# The app may also live in /Applications (drag-to-Applications install). Only a Focus bundle is ever touched there.
+SYS_APP_DEST="/Applications/Focus.app"
+SYS_APP_EXEC="$SYS_APP_DEST/Contents/MacOS/Focus"
 # Two layouts. From source (Package.swift present): build.sh produces build/Focus.app.
 # From a release folder: a prebuilt Focus.app sits next to scripts/ and nothing is built.
 if [[ -f "$REPO_ROOT/Package.swift" ]]; then
@@ -33,11 +36,17 @@ pids_for() {
   pgrep -f "^$(escape_re "$1")( |\$)" 2>/dev/null || true
 }
 
-# PIDs of any Focus process we own, from either the installed or the build copy.
+# True when the path is an app bundle with bundle id com.pol.focus.
+is_focus_bundle() {
+  [[ "$(plutil -extract CFBundleIdentifier raw -o - "$1/Contents/Info.plist" 2>/dev/null || true)" == "$LABEL" ]]
+}
+
+# PIDs of any Focus process we own: the installed copy in either Applications folder, or the build copy.
 focus_pids() {
   {
     pids_for "$APP_EXEC"
     pids_for "$BUILD_EXEC"
+    if is_focus_bundle "$SYS_APP_DEST"; then pids_for "$SYS_APP_EXEC"; fi
   } | sort -u
 }
 
@@ -126,6 +135,10 @@ remove_app_traces() {
     unregister_bundle "$APP_DEST"
     remove_path "$APP_DEST"
   fi
+  if is_focus_bundle "$SYS_APP_DEST"; then
+    unregister_bundle "$SYS_APP_DEST"
+    remove_path "$SYS_APP_DEST"
+  fi
 
   # Clear cfprefsd's cached copy first, then delete the file it would have written.
   if defaults read "$LABEL" >/dev/null 2>&1; then
@@ -183,6 +196,9 @@ scan_traces() {
   done
   if [[ "$include_data" == "1" ]]; then
     candidates+=("$DATA_DIR")
+  fi
+  if is_focus_bundle "$SYS_APP_DEST"; then
+    candidates+=("$SYS_APP_DEST")
   fi
 
   for p in "${candidates[@]}"; do

@@ -78,6 +78,11 @@ PLIST
 # Keep the app version in lockstep with the extension version.
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
+
+# Browser extension, copied out of the bundle by Settings > General > Show Browser Extension.
+cp -R "$ROOT/extension" "$APP/Contents/Resources/extension"
+find "$APP/Contents/Resources/extension" -name .DS_Store -delete
+
 codesign --force --sign - "$APP"
 
 echo "==> Built $APP"

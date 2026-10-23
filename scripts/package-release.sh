@@ -70,7 +70,12 @@ chmod +x "$STAGE/scripts/"*.sh
 codesign --verify --deep --strict "$STAGE/Focus.app"
 ditto -c -k --keepParent "$STAGE" "$ZIP"
 
+echo "==> Building DMG installer"
+"$ROOT/scripts/build-dmg.sh" --no-build
+DMG="$ROOT/dist/Focus-$VERSION.dmg"
+
 echo "==> Release package"
 echo "  folder: $STAGE"
 echo "  zip:    $ZIP ($(du -h "$ZIP" | cut -f1))"
-shasum -a 256 "$ZIP"
+echo "  dmg:    $DMG ($(du -h "$DMG" | cut -f1))"
+shasum -a 256 "$ZIP" "$DMG"

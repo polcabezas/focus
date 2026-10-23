@@ -46,13 +46,12 @@ Browser blocking works through a small Manifest V3 extension that talks to the a
 
 ### Download
 
-Download `Focus-0.5.0-macOS.zip` from [Releases](https://github.com/polcabezas/focus/releases/latest), unzip it, and run:
+1. Download `Focus-0.6.0.dmg` from [Releases](https://github.com/polcabezas/focus/releases/latest) and open it.
+2. Drag **Focus** to **Applications**.
+3. Open Focus from Applications. It starts at login and shows its menu-bar icon. If you open it from the disk image, Focus offers to move itself to Applications first.
+4. Open **Settings → General → Show Browser Extension…** and load that folder in your browser ([details](#load-the-browser-extension)).
 
-```sh
-./scripts/install.sh
-```
-
-Focus is ad-hoc signed and not notarized. The script clears the quarantine flag on the app it installs. If you open `Focus.app` yourself and macOS blocks it, use System Settings → Privacy & Security → **Open Anyway**.
+Focus is ad-hoc signed and not notarized, so macOS may block the first launch. Use System Settings → Privacy & Security → **Open Anyway**.
 
 ### From source
 
@@ -72,21 +71,25 @@ Then [load the browser extension](#load-the-browser-extension).
 
 ## Load the browser extension
 
+First, open **Settings → General → Show Browser Extension…**. Focus copies the extension to
+`~/Library/Application Support/Focus/Extension` and reveals it in Finder. (From a source checkout, the `extension/` folder works too.)
+
 **Arc**
 
 1. Open `arc://extensions`.
 2. Enable **Developer mode**.
-3. Click **Load unpacked** and choose the `extension/` folder of this repository.
+3. Click **Load unpacked** and choose the extension folder.
 
 **Search**
 
 1. Open the extension settings in Search.
-2. Choose the `extension/` folder of this repository.
+2. Choose the extension folder.
 
 Search copies the extension when you add it, so after any change to the extension you must remove Focus in Search's
 extension settings and add the folder again. Bump `version` in `extension/manifest.json` first. Search only refreshes its copy
 when the version changes, so an edit with the same version is not picked up even after re-adding the folder.
-Arc reads the folder directly, so reloading the extension there is enough.
+Arc reads the folder directly, so reloading the extension there is enough. Show Browser Extension replaces the copy
+only when the version changes.
 
 The extension talks to the app at `ws://127.0.0.1:47823`. Without the app, it keeps enforcing the last rules it received until the block ends.
 
@@ -101,11 +104,17 @@ The extension talks to the app at `ws://127.0.0.1:47823`. Without the app, it ke
 
 ## Uninstall
 
+Open **Settings → General → Uninstall Focus…**. It is available when no block is active. Focus moves itself to the Trash,
+removes its settings, history and background item, and quits.
+
+From a source checkout, or to see each path removed, run:
+
 ```sh
 ./scripts/uninstall.sh
 ```
 
-Uninstall is refused while a block is active. `./scripts/uninstall.sh --force` overrides that.
+Uninstall is refused while a block is active. `./scripts/uninstall.sh --force` overrides that. The script finds the app
+in `/Applications` or `~/Applications`.
 
 The script is idempotent. It stops Focus, removes the app, the LaunchAgent, the data folder and the macOS preferences and caches,
 and prints each path it removed. It finishes with a leftover scan that lists anything still present or still running, and exits non-zero if it finds any.
@@ -128,9 +137,9 @@ Remove the browser extension yourself in Arc (`arc://extensions`) and in Search'
 
 | Path | Created by | Removed by |
 | --- | --- | --- |
-| `~/Applications/Focus.app` | install.sh | uninstall.sh |
-| `~/Library/LaunchAgents/com.pol.focus.plist` | install.sh | uninstall.sh |
-| `~/Library/Application Support/Focus/` (state.json, history.jsonl, active-block-until) | the app | uninstall.sh |
+| `/Applications/Focus.app` or `~/Applications/Focus.app` | you (drag from the disk image), the app (moves itself), or install.sh | the app (Settings → Uninstall), uninstall.sh |
+| `~/Library/LaunchAgents/com.pol.focus.plist` | the app, install.sh | the app (Settings → Uninstall), uninstall.sh |
+| `~/Library/Application Support/Focus/` (state.json, history.jsonl, active-block-until, Extension/) | the app | the app (Settings → Uninstall), uninstall.sh |
 | `~/Library/Application Support/Focus/apikey`, `apikey-gatekeeper`, `apikey-verifier` (obsolete key files) | an earlier version | install.sh and uninstall.sh |
 | `~/Library/Preferences/com.pol.focus.plist` | macOS, only if created | install.sh (old traces) and uninstall.sh (defensive) |
 | `~/Library/Caches/com.pol.focus/` | macOS networking, if created | install.sh (old traces) and uninstall.sh (defensive) |
@@ -166,8 +175,9 @@ SPEC.md, DESIGN.md               internal specification and design notes
 ```sh
 swift build           # debug build
 swift test            # unit tests for FocusCore
-scripts/build.sh      # universal release build (arm64 + x86_64) into build/Focus.app (signed ad hoc)
-scripts/package-release.sh  # build, then dist/Focus-<version>-macOS.zip for GitHub Releases (prints SHA-256)
+scripts/build.sh      # universal release build (arm64 + x86_64) into build/Focus.app (signed ad hoc, extension bundled)
+scripts/build-dmg.sh  # build, then the drag-to-Applications DMG for GitHub Releases
+scripts/package-release.sh  # build, then dist/Focus-<version>-macOS.zip (prints SHA-256)
 ```
 
 - **App icon:** edit `assets/AppIcon.icon` in Icon Composer (Xcode > Open Developer Tool > Icon Composer).
