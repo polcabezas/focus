@@ -1,0 +1,185 @@
+/* focus. block page. Tokens follow DESIGN.md (Tokens + Glass). System fonts only, no images, no external requests. */
+:root {
+  --ground: #000000;
+  --ink: #ffffff;
+  --card: #0c0c0e;
+  --dim: #98989e;
+  --faint: #5a5a60;
+  --hairline: #232326;
+
+  --glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --glass-blur: blur(40px) saturate(1.8);
+
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ease-pop: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ground: #ffffff;
+    --ink: #0a0a0a;
+    --card: #f4f4f5;
+    --dim: #6e6e73;
+    --faint: #a1a1a6;
+    --hairline: #e2e2e6;
+
+    --glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55));
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    color-scheme: light;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(32px, 8vw, 72px) 24px;
+}
+
+.page {
+  width: 100%;
+  max-width: 560px;
+  text-align: center;
+  animation: pop 420ms var(--ease-pop) both;
+}
+
+.wordmark {
+  margin: 0 0 28px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: var(--faint);
+}
+
+.headline {
+  margin: 0;
+  font-size: clamp(56px, 12vw, 96px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.line {
+  margin: 22px 0 0;
+  font-size: clamp(16px, 2.2vw, 18px);
+  line-height: 1.45;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+/* Glass card: eyebrow rows separated by hairlines. */
+.glass {
+  margin: 40px 0 0;
+  text-align: left;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: var(--glass-fill);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.row + .row { border-top: 1px solid var(--hairline); }
+
+.row.time {
+  display: block;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.countdown {
+  display: block;
+  margin-top: 10px;
+  font-size: clamp(44px, 13vw, 64px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+/* Actions */
+.actions {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 56px;
+  margin: 0;
+  padding: 0 24px;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 150ms ease, transform 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:hover { opacity: 0.9; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ground);
+}
+
+[hidden] { display: none !important; }
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page { animation: none; }
+  .btn { transition: none; }
+}

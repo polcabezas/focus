@@ -1,0 +1,22 @@
+# pre-commit hooks. Install with: pre-commit install
+# Requires: pip install pre-commit  OR  brew install pre-commit
+repos:
+  - repo: https://github.com/gitguardian/ggshield
+    rev: v1.32.0  # check latest at github.com/GitGuardian/ggshield/releases
+    hooks:
+      - id: ggshield
+        language_version: python3
+        stages: [pre-commit]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.0  # check latest at github.com/gitleaks/gitleaks/releases
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: detect-private-key
+      - id: check-merge-conflict

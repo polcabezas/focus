@@ -1,0 +1,30 @@
+.build*/
+build/
+.DS_Store
+
+# Added by /secure-new-repo on 2026-10-23
+# Secrets & env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.cert
+*.crt
+
+# Editor / IDE
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs / coverage
+*.log
+coverage/
+
+# secure-new-repo skill artifacts
+.security-bootstrap-state.json
+.security-bootstrap-log.md
